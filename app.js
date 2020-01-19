@@ -24,16 +24,15 @@ b.on("up", (service) => {
                     name: service.name,
                     address: address, 
                     port: service.port, 
-                })
+                });
             } else {
                 knownRoutes[name] = {
                     name: name,
                     nodes: [{name: service.name, address: address, port: service.port,}],
                     lastUsedNode: 0,
                     routes: res.data
-                }
+                };
             }
-        
         }).catch(err => {
             console.log(err);
         });
@@ -55,8 +54,7 @@ b.on("down", (service) => {
 })
 
 const handleRequest = async (req, res) => {
-    let url = req.url.substr(1).split('/');
-    console.log(url);
+    let url = req.url.substr(1).split('?')[0].split('/');
     if (url[0] === 'api') {
         url.shift();
         if (knownRoutes[url[0]]) {
@@ -73,11 +71,15 @@ const handleRequest = async (req, res) => {
             let testRoute = service.routes.filter(e => servicePath === e.route)[0]; 
             // need a better way to ensure the route exists!
             // also need to figure out what params will be forwarded from the initial req
+            console.log(`${req.method} [${service.name}] ${servicePath} [${node.name}]`);
             let reqUrl = `http://${node.address}:${node.port}${servicePath}`;
             try {
                 let re = await axios({
                     method: req.method.toLowerCase(),
-                    url: reqUrl
+                    url: reqUrl,
+                    params: req.query,
+                    headers: req.headers,
+                    data: req.body
                 });
                 return res.json(re.data);
             } catch (e) {
@@ -92,6 +94,7 @@ const handleRequest = async (req, res) => {
     }
 }
 
+app.use(express.json());
 app.get('*', handleRequest);
 app.post('*', handleRequest);
 

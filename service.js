@@ -7,7 +7,8 @@ const app = express();
 const appName = `test`
 const serviceName = `user`
 
-
+app.disable('etag');
+app.use(express.json());
 // this url will list all the routes
 app.get('/api', function(req,res) {
     let r = app._router.stack
@@ -29,12 +30,13 @@ app.get('/test', function(req,res) {
 });
 
 app.get('/hello', function(req,res) {
-    return res.json({"res": "HELLO"});
+    return res.json({"res": `HELLO ${req.query.name}`});
 });
 app.post('/hello', function(req,res) {
-    return res.json({"res": "HELLO"});
+    return res.json({"res": `HELLO ${req.body.name}`});
 });
 
+// this last as a default error page 
 app.get('*', function(req,res) {
     return res.json("Invalid URL");
 });
