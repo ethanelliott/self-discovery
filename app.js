@@ -1,53 +1,63 @@
 const bonjour = require('bonjour')();
 const net = require('net');
-var express = require('express');
-var app = express();
+const axios = require('axios');
+const express = require('express');
+const app = express();
+
+let appName = `ontechcourse`;
 
 let knownRoutes = {};
 
+const serviceName = (name) => `microservice-${appName}-${name}`;
+
 // browse for all http services
-bonjour.find({ name: 'microservice' }, function (service) {
-    if (service.name.includes('microservice-ontechcourse-')) {
-        let name = service.name.split('microservice-ontechcourse-')[1];
+bonjour.find({ type: `http` }, function (service) {
+    if (service.name.includes(`microservice-${appName}-`)) {
+        let name = service.name.split(`microservice-${appName}-`)[1];
         let address = service.addresses.filter(e => net.isIPv4(e))[0];
         console.log(`${name} -> ${address}:${service.port}`);
         // need to get the available paths from the service
-        knownRoutes[name] = {
-            name: name,
-            address: address,
-            port: service.port
-        }
+        axios.get(`http://${address}:${service.port}/api`).then(res => {
+            knownRoutes[name] = {
+                name: name,
+                address: address,
+                port: service.port,
+                routes: res.data
+            }
+        }).catch(err => {
+            console.log(err);
+        })
+    
     }
 });
 
-app.get('*', function(req,res) {
+const handleRequest = async (req, res) => {
     let url = req.url.split('/');
     url.shift(); // remove first null item
-    console.log(url);
     if (url[0] === 'api') {
-        if (knownRoutes[url[1]]) {
-            let service = knownRoutes[url[1]];
-            console.log(service);
-            return res.json(service);
+        url.shift();
+        if (knownRoutes[url[0]]) {
+            let service = knownRoutes[url[0]];
+            url.shift();
+            let servicePath = `/${url.join('/')}`;
+            let testRoute = service.routes.filter(e => servicePath === e.path)[0]; 
+            // need a better way to ensure the route exists!
+            // also need to figure out what params will be forwarded from the initial req
+            let reqUrl = `http://${service.address}:${service.port}${servicePath}`;
+            let re = await axios({
+                method: req.method.toLowerCase(),
+                url: reqUrl
+            });
+            return res.json(re.data);
+        } else {
+            return res.json(knownRoutes);
         }
-        return res.json(knownRoutes);
     } else {
-        return res.json({});
+        return res.json({"err": "Something went wrong"});
     }
-});
+}
 
-// app.get('/api', function(req,res) {
-//     return res.json(knownRoutes);
-// });
-//
-// app.get('/api/:service', function(req,res) {
-//     console.log(req.params.service);
-//     if (knownRoutes[req.params.service]) {
-//         let service = knownRoutes[req.params.service];
-//         console.log(service);
-//         return res.json(service);
-//     }
-//     return res.json({})
-// });
+app.get('*', handleRequest);
+app.post('*', handleRequest);
 
 app.listen(5000);

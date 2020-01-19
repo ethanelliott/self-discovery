@@ -1,0 +1,13 @@
+{
+  "name": "self-discovery",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:ethanelliott/self-discovery.git",
+  "author": "Ethan Elliott <ethan.elliott@hotmail.ca>",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.19.1",
+    "bonjour": "^3.5.0",
+    "express": "^4.17.1"
+  }
+}
