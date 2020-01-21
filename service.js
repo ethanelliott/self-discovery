@@ -19,10 +19,13 @@ app.get('/api', function(req,res) {
     }))
     .filter(e => {
         // hide the default routes
-        return e.route !== '/api' && e.route !== '*'
+        return e.route !== '/api' && e.route !== '/heartbeat' && e.route !== '*'
     });
     // need to add a way to compress the routes
     return res.json(r);
+});
+app.get('/heartbeat', function(req,res) {
+    return res.send("alive");
 });
 
 app.get('/test', function(req,res) {
