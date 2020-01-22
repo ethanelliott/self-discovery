@@ -10,12 +10,33 @@ const appName = `test`;
 
 let knownRoutes = {};
 
+/**
+ * TODO: add the ability to scale the services.
+ *  This might require the service to have some overhead 
+ *  as a runner of the actual server...
+ *  
+ * 
+ *  Each service has a service runner. 
+ * 
+ *  The service runner can start and stop instances of the service
+ *  depending on the rate of requests x/s 
+ * 
+ *  The service handles the bare minimum business logic
+ * 
+ *  The gateway can tell the service runner to start or stop service instances
+ *  
+ *  Each service operates to independently broadcast it's existence
+ */
+
 const newService = (service) => {
     // find only the services for the current app
-    if (service.txt && service.txt.server && service.txt.server === appName) {
+    if (service.txt && service.txt.server && service.txt.server === appName && service.txt.type === 'service') {
         let name = service.txt.service;
         let address = service.addresses.filter(e => net.isIPv4(e))[0];
         console.log(`REGISTER: ${name} -> ${address}:${service.port} [${service.name}]`);
+        // with this schedule, there is a chance that there is a request made 
+        // within 5 seconds of the service crashing, and the result of the req
+        // will not make it
         let job = schedule.scheduleJob(`*/5 * * * * *`, async (time) => {
             try {
                 let r = await axios.get(`http://${address}:${service.port}/heartbeat`);
@@ -41,6 +62,7 @@ const newService = (service) => {
                 };
             }
         }).catch(err => {
+            // why would something go wrong when it just got the broadcast from the service?
             console.log(err);
         });
     }
@@ -48,11 +70,13 @@ const newService = (service) => {
 
 const cleanUpService = (service) => {
     // clean up service when it gets destroyed
-    if (service.txt && service.txt.server && service.txt.server === appName) {
+    if (service.txt && service.txt.server && service.txt.server === appName && service.txt.type === 'service') {
         let name = service.txt.service;
         let nodeName = service.name;
         for (let i = 0; i < knownRoutes[name].nodes.length; i++) {
-            knownRoutes[name].nodes[i].heartBeat.cancel();
+            if (knownRoutes[name].nodes[i].name === nodeName) {
+                knownRoutes[name].nodes[i].heartBeat.cancel();
+            }
         }
         if (knownRoutes[name].nodes.length > 1) {
             knownRoutes[name].nodes = knownRoutes[name].nodes.filter(e => e.name !== nodeName);

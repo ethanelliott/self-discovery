@@ -48,7 +48,7 @@ app.get('*', function(req,res) {
 getPort().then(port => {
     app.listen(port, () => {
         console.log(`service is running on ${port}`);
-        bonjour.publish({ name: uuidv1(), type: 'http', port, txt: {server: appName, service: serviceName}});
+        bonjour.publish({ name: uuidv1(), type: 'http', port, txt: {server: appName, service: serviceName, type: 'service'}});
     });
 }).catch(e => console.log(e));
 
