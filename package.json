@@ -6,7 +6,7 @@
   "author": "Ethan Elliott <ethan.elliott@hotmail.ca>",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.1",
+    "axios": "^0.21.1",
     "bonjour": "^3.5.0",
     "express": "^4.17.1",
     "get-port": "^5.1.1",
